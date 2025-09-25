@@ -86,7 +86,7 @@ npm install
 
 To send SMS messages, you need a Twilio account.
 
-1.  Activate a `.env` file in the `C:\Users\User\OneDrive\PillPall\backend\django` directory.
+1.  Activate a `.venv` file in the `C:\Users\User\OneDrive\PillPall\backend\django` directory.
 2.  Add your Twilio credentials to the `.env` file in the following format:
 
     ```
