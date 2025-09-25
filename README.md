@@ -20,8 +20,8 @@ PillPall is a full-stack application designed to help users manage their medicat
 
 ### Prerequisites
 
--   [Node.js](https://nodejs.org/) (v18 or later)
--   [Python](https://www.python.org/) (v3.10 or later)
+-   Node.js (v18 or later)
+-   Python (v3.10 or later)
 -   `pip` and `venv` for Python package management
 
 ### 1. Frontend Setup
@@ -86,7 +86,7 @@ npm install
 
 To send SMS messages, you need a Twilio account.
 
-1.  Create a `.env` file in the `backend/node` directory.
+1.  Activate a `.env` file in the `C:\Users\User\OneDrive\PillPall\backend\django` directory.
 2.  Add your Twilio credentials to the `.env` file in the following format:
 
     ```
@@ -119,3 +119,4 @@ To run the complete application, you will need to have three terminals open:
 ## License
 
 MIT
+
