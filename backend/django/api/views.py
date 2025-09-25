@@ -109,6 +109,7 @@ class AuthViewSet(viewsets.ViewSet):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password", "")
         full_name = request.data.get("full_name", "")
+        phone_number = request.data.get("phone_number", "")
         first_name, last_name = full_name.split(" ", 1) if " " in full_name else (full_name, "")
         if not email or not password:
             return Response({"error": "email and password required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -119,6 +120,7 @@ class AuthViewSet(viewsets.ViewSet):
             email=email,
             first_name=first_name,
             last_name=last_name,
+            phone_number=phone_number,
             password=make_password(password),
         )
         return Response(UserSerializer(user).data)
