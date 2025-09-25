@@ -11,6 +11,7 @@ export interface Caregiver {
   email?: string;
   notifications_enabled: boolean;
   emergency_contact: boolean;
+  created_at: string;
 }
 
 export interface NewCaregiver {
@@ -37,18 +38,22 @@ export const useCaregivers = () => {
       const data = await apiFetch('/caregivers/');
       setCaregivers(data || []);
     } catch (error: any) {
+      console.error('Error fetching caregivers:', error);
       toast({
         title: "Error fetching caregivers",
-        description: error.message,
+        description: error.message || "Failed to load caregivers",
         variant: "destructive",
       });
+      setCaregivers([]);
     } finally {
       setLoading(false);
     }
   };
 
   const addCaregiver = async (newCaregiver: NewCaregiver) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
 
     try {
       await apiFetch('/caregivers/', {
@@ -56,19 +61,11 @@ export const useCaregivers = () => {
         body: JSON.stringify(newCaregiver),
       });
 
-      toast({
-        title: "Caregiver added successfully",
-        description: `${newCaregiver.name} has been added to your care network.`,
-      });
-
       // Refresh the caregivers list
       await fetchCaregivers();
     } catch (error: any) {
-      toast({
-        title: "Error adding caregiver",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error adding caregiver:', error);
+      throw new Error(error.message || "Failed to add caregiver");
     }
   };
 
@@ -84,17 +81,9 @@ export const useCaregivers = () => {
           ? { ...caregiver, notifications_enabled: enabled }
           : caregiver
       ));
-
-      toast({
-        title: "Notification settings updated",
-        description: `Notifications ${enabled ? 'enabled' : 'disabled'} for this caregiver.`,
-      });
     } catch (error: any) {
-      toast({
-        title: "Error updating notifications",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error updating notifications:', error);
+      throw new Error(error.message || "Failed to update notification settings");
     }
   };
 

@@ -8,20 +8,25 @@ import { useToast } from "@/components/ui/use-toast";
 import { Heart, Mail, Lock, User, Phone } from "lucide-react";
 import { apiFetch, setAccessToken } from "@/lib/apiClient";
 import { useNavigate } from "react-router-dom";
-// Removed legacy Lovable icon asset import
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [signInData, setSignInData] = useState({ email: "", password: "" });
+  const [signUpData, setSignUpData] = useState({ 
+    email: "", 
+    password: "", 
+    fullName: "", 
+    phoneNumber: "" 
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = sessionStorage.getItem("pp_token");
-    if (token) navigate("/");
+    if (token) {
+      setAccessToken(token);
+      navigate("/");
+    }
   }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -29,19 +34,38 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      await apiFetch('/auth/signup/', {
+      if (!signUpData.email || !signUpData.password || !signUpData.fullName) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      if (signUpData.password.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
+      }
+
+      const response = await apiFetch('/auth/signup/', {
         method: 'POST',
-        body: JSON.stringify({ email, password, full_name: fullName, phone_number: phoneNumber }),
+        body: JSON.stringify({
+          email: signUpData.email.trim().toLowerCase(),
+          password: signUpData.password,
+          full_name: signUpData.fullName.trim(),
+          phone_number: signUpData.phoneNumber.trim()
+        }),
       });
 
       toast({
-        title: "Success!",
-        description: "Please check your email to confirm your account.",
+        title: "Account created successfully!",
+        description: "You can now sign in with your credentials.",
       });
+
+      // Clear signup form and switch to signin tab
+      setSignUpData({ email: "", password: "", fullName: "", phoneNumber: "" });
+      // Auto-fill signin form
+      setSignInData({ email: signUpData.email, password: signUpData.password });
+      
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Sign up failed",
+        description: error.message || "Failed to create account",
         variant: "destructive",
       });
     } finally {
@@ -54,10 +78,22 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      if (!signInData.email || !signInData.password) {
+        throw new Error("Please enter both email and password");
+      }
+
       const tokens = await apiFetch('/auth/token/', {
         method: 'POST',
-        body: JSON.stringify({ username: email, password }),
+        body: JSON.stringify({ 
+          username: signInData.email.trim().toLowerCase(), 
+          password: signInData.password 
+        }),
       });
+
+      if (!tokens.access) {
+        throw new Error("Invalid response from server");
+      }
+
       setAccessToken(tokens.access);
       sessionStorage.setItem("pp_token", tokens.access);
 
@@ -66,11 +102,11 @@ const Auth = () => {
         description: "You have been successfully signed in.",
       });
       
-      window.location.href = "/";
+      navigate("/");
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Sign in failed",
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     } finally {
@@ -84,6 +120,7 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-3 mb-4">
+            <Heart className="h-8 w-8 text-primary" />
             <div>
               <h1 className="text-3xl font-bold text-foreground">PillPall</h1>
               <p className="text-muted-foreground">Your health companion</p>
@@ -120,9 +157,10 @@ const Auth = () => {
                         type="email"
                         placeholder="Enter your email"
                         className="pl-10"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={signInData.email}
+                        onChange={(e) => setSignInData(prev => ({ ...prev, email: e.target.value }))}
                         required
+                        disabled={loading}
                       />
                     </div>
                   </div>
@@ -136,9 +174,10 @@ const Auth = () => {
                         type="password"
                         placeholder="Enter your password"
                         className="pl-10"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={signInData.password}
+                        onChange={(e) => setSignInData(prev => ({ ...prev, password: e.target.value }))}
                         required
+                        disabled={loading}
                       />
                     </div>
                   </div>
@@ -157,7 +196,7 @@ const Auth = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fullname">Full Name</Label>
+                    <Label htmlFor="fullname">Full Name *</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -165,9 +204,10 @@ const Auth = () => {
                         type="text"
                         placeholder="Enter your full name"
                         className="pl-10"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        value={signUpData.fullName}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, fullName: e.target.value }))}
                         required
+                        disabled={loading}
                       />
                     </div>
                   </div>
@@ -181,15 +221,15 @@ const Auth = () => {
                         type="tel"
                         placeholder="Enter your phone number"
                         className="pl-10"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        required
+                        value={signUpData.phoneNumber}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        disabled={loading}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">Email *</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -197,26 +237,28 @@ const Auth = () => {
                         type="email"
                         placeholder="Enter your email"
                         className="pl-10"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={signUpData.email}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, email: e.target.value }))}
                         required
+                        disabled={loading}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password">Password *</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Create a password"
+                        placeholder="Create a password (min 6 characters)"
                         className="pl-10"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={signUpData.password}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, password: e.target.value }))}
                         required
                         minLength={6}
+                        disabled={loading}
                       />
                     </div>
                   </div>
@@ -235,7 +277,7 @@ const Auth = () => {
         </Card>
 
         <div className="text-center text-sm text-muted-foreground">
-          <p>Secure authentication powered by Supabase</p>
+          <p>Secure authentication with JWT tokens</p>
         </div>
       </div>
     </div>

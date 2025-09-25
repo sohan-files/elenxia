@@ -49,18 +49,22 @@ export const useMedicines = () => {
       const data = await apiFetch('/medicines/');
       setMedicines(data || []);
     } catch (error: any) {
+      console.error('Error fetching medicines:', error);
       toast({
         title: "Error fetching medicines",
-        description: error.message,
+        description: error.message || "Failed to load medicines",
         variant: "destructive",
       });
+      setMedicines([]);
     } finally {
       setLoading(false);
     }
   };
 
   const addMedicine = async (newMedicine: NewMedicine) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
 
     try {
       // Create the medicine first
@@ -79,38 +83,34 @@ export const useMedicines = () => {
       });
 
       // Create schedules for each time
-      const schedulePromises = newMedicine.times.map(time => 
-        apiFetch('/schedules/', {
-          method: 'POST',
-          body: JSON.stringify({
-            medicine: medicine.id,
-            time_of_day: time,
-            days_of_week: [1, 2, 3, 4, 5, 6, 7], // All days
-            is_active: true,
-          }),
-        })
-      );
+      if (newMedicine.times && newMedicine.times.length > 0) {
+        const schedulePromises = newMedicine.times.map(time => 
+          apiFetch('/schedules/', {
+            method: 'POST',
+            body: JSON.stringify({
+              medicine: medicine.id,
+              time_of_day: time,
+              days_of_week: [1, 2, 3, 4, 5, 6, 7], // All days
+              is_active: true,
+            }),
+          })
+        );
 
-      await Promise.all(schedulePromises);
-
-      toast({
-        title: "Medicine added successfully",
-        description: `${newMedicine.name} has been added to your medication list.`,
-      });
+        await Promise.all(schedulePromises);
+      }
 
       // Refresh the medicines list
       await fetchMedicines();
     } catch (error: any) {
-      toast({
-        title: "Error adding medicine",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error adding medicine:', error);
+      throw new Error(error.message || "Failed to add medicine");
     }
   };
 
   const editMedicine = async (medicineId: string, updatedMedicine: NewMedicine) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
 
     try {
       // Update the medicine
@@ -128,45 +128,47 @@ export const useMedicines = () => {
       });
 
       // Get existing schedules and delete them
-      const existingSchedules = await apiFetch(`/schedules/?medicine=${medicineId}`);
-      const deletePromises = existingSchedules.map((schedule: any) =>
-        apiFetch(`/schedules/${schedule.id}/`, { method: 'DELETE' })
-      );
-      await Promise.all(deletePromises);
+      try {
+        const existingSchedules = await apiFetch(`/schedules/?medicine=${medicineId}`);
+        if (existingSchedules && existingSchedules.length > 0) {
+          const deletePromises = existingSchedules.map((schedule: any) =>
+            apiFetch(`/schedules/${schedule.id}/`, { method: 'DELETE' })
+          );
+          await Promise.all(deletePromises);
+        }
+      } catch (error) {
+        console.warn('Error deleting existing schedules:', error);
+      }
 
       // Create new schedules
-      const schedulePromises = updatedMedicine.times.map(time => 
-        apiFetch('/schedules/', {
-          method: 'POST',
-          body: JSON.stringify({
-            medicine: medicineId,
-            time_of_day: time,
-            days_of_week: [1, 2, 3, 4, 5, 6, 7],
-            is_active: true,
-          }),
-        })
-      );
+      if (updatedMedicine.times && updatedMedicine.times.length > 0) {
+        const schedulePromises = updatedMedicine.times.map(time => 
+          apiFetch('/schedules/', {
+            method: 'POST',
+            body: JSON.stringify({
+              medicine: medicineId,
+              time_of_day: time,
+              days_of_week: [1, 2, 3, 4, 5, 6, 7],
+              is_active: true,
+            }),
+          })
+        );
 
-      await Promise.all(schedulePromises);
-
-      toast({
-        title: "Medicine updated successfully",
-        description: `${updatedMedicine.name} has been updated.`,
-      });
+        await Promise.all(schedulePromises);
+      }
 
       // Refresh the medicines list
       await fetchMedicines();
     } catch (error: any) {
-      toast({
-        title: "Error updating medicine",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error updating medicine:', error);
+      throw new Error(error.message || "Failed to update medicine");
     }
   };
 
   const deleteMedicine = async (medicineId: string) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
 
     try {
       await apiFetch(`/medicines/${medicineId}/`, {
@@ -174,17 +176,9 @@ export const useMedicines = () => {
       });
 
       setMedicines(prev => prev.filter(medicine => medicine.id !== medicineId));
-
-      toast({
-        title: "Medicine deleted",
-        description: "The medicine has been removed from your list.",
-      });
     } catch (error: any) {
-      toast({
-        title: "Error deleting medicine",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error deleting medicine:', error);
+      throw new Error(error.message || "Failed to delete medicine");
     }
   };
 

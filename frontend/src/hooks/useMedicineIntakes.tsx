@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export interface MedicineIntake {
   id: string;
-  medicine_id: string;
+  medicine: number;
   scheduled_time: string;
   actual_time?: string;
   status: 'pending' | 'taken' | 'missed' | 'skipped';
@@ -34,46 +34,40 @@ export const useMedicineIntakes = () => {
         status: intake.status as 'pending' | 'taken' | 'missed' | 'skipped',
       })));
     } catch (error: any) {
+      console.error('Error fetching intakes:', error);
       toast({
         title: "Error fetching intakes",
-        description: error.message,
+        description: error.message || "Failed to load medication intakes",
         variant: "destructive",
       });
+      setIntakes([]);
     } finally {
       setLoading(false);
     }
   };
 
   const recordIntake = async (medicineId: string, status: 'taken' | 'missed' | 'skipped', notes?: string) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
 
     try {
       const now = new Date().toISOString();
       await apiFetch('/intakes/', {
         method: 'POST',
         body: JSON.stringify({
-          medicine: Number(medicineId),
+          medicine: parseInt(medicineId),
           scheduled_time: now,
           actual_time: status === 'taken' ? now : null,
           status,
-          notes,
+          notes: notes || '',
         })
-      });
-
-      toast({
-        title: status === 'taken' ? "Medicine taken!" : `Medicine ${status}`,
-        description: status === 'taken' 
-          ? "Great job staying on track with your medication!" 
-          : "Intake recorded for tracking.",
       });
 
       await fetchTodayIntakes();
     } catch (error: any) {
-      toast({
-        title: "Error recording intake",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error recording intake:', error);
+      throw new Error(error.message || "Failed to record medication intake");
     }
   };
 
@@ -84,7 +78,11 @@ export const useMedicineIntakes = () => {
       const data = await apiFetch('/intakes/');
       const windowStart = new Date();
       windowStart.setDate(windowStart.getDate() - days);
-      const windowed = (data || []).filter((i: any) => new Date(i.scheduled_time) >= windowStart);
+      
+      const windowed = (data || []).filter((i: any) => 
+        new Date(i.scheduled_time) >= windowStart
+      );
+      
       const totalDoses = windowed.length || 0;
       const takenDoses = windowed.filter((i: any) => i.status === 'taken').length || 0;
       const compliance = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 0;

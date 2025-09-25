@@ -17,7 +17,7 @@ class Medicine(models.Model):
     dosage = models.CharField(max_length=100)
     med_type = models.CharField(max_length=50)
     remaining_count = models.IntegerField(default=0)
-    refill_threshold = models.IntegerField(default=0)
+    refill_threshold = models.IntegerField(default=5)
     instructions = models.TextField(blank=True, null=True)
     side_effects = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -25,37 +25,76 @@ class Medicine(models.Model):
     def __str__(self):
         return f"{self.name} - {self.dosage}"
 
+    class Meta:
+        ordering = ['-created_at']
+
+
 class MedicineSchedule(models.Model):
     medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name="schedules")
-    time_of_day = models.CharField(max_length=5)  # HH:MM
-    days_of_week = models.JSONField(default=list)  # [1..7]
+    time_of_day = models.CharField(max_length=5)  # HH:MM format
+    days_of_week = models.JSONField(default=list)  # [1..7] where 1=Monday, 7=Sunday
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.medicine.name} at {self.time_of_day}"
 
+    class Meta:
+        ordering = ['time_of_day']
+
+
 class Notification(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('read', 'Read'),
+        ('failed', 'Failed'),
+    ]
+    
+    TYPE_CHOICES = [
+        ('medication_reminder', 'Medication Reminder'),
+        ('refill_reminder', 'Refill Reminder'),
+        ('appointment_reminder', 'Appointment Reminder'),
+        ('test', 'Test'),
+        ('system', 'System'),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    medicine_id = models.CharField(max_length=50, blank=True, null=True)  # Optional reference to medicine
     title = models.CharField(max_length=200)
     message = models.TextField()
-    type = models.CharField(max_length=50)
-    status = models.CharField(max_length=20, default="pending")
+    type = models.CharField(max_length=50, choices=TYPE_CHOICES, default='system')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     scheduled_for = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.title} - {self.user.username}"
 
+    class Meta:
+        ordering = ['-created_at']
+
+
 class MedicineIntake(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('taken', 'Taken'),
+        ('missed', 'Missed'),
+        ('skipped', 'Skipped'),
+    ]
+
     medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name="intakes")
     scheduled_time = models.DateTimeField()
     actual_time = models.DateTimeField(blank=True, null=True)
-    status = models.CharField(max_length=20, default="pending")  # pending|taken|missed|skipped
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.medicine.name} - {self.status}"
+
+    class Meta:
+        ordering = ['-scheduled_time']
+
 
 class Caregiver(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="caregivers")
@@ -69,3 +108,6 @@ class Caregiver(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.user.username}"
+
+    class Meta:
+        ordering = ['-created_at']
