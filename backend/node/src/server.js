@@ -17,8 +17,20 @@ const twilioFrom = process.env.TWILIO_FROM || "";
 if (!twilioSid || !twilioToken || !twilioFrom) {
   console.error('Twilio credentials missing or invalid. Check .env file.');
 }
-const canSend = twilioSid && twilioToken && twilioFrom;
-const client = canSend ? twilio(twilioSid, twilioToken) : null;
+
+let canSend = false;
+let client = null;
+
+if (twilioSid && twilioToken && twilioFrom) {
+  try {
+    client = twilio(twilioSid, twilioToken);
+    canSend = true;
+  } catch (error) {
+    console.error('Failed to initialize Twilio client:', error.message);
+    canSend = false;
+    client = null;
+  }
+}
 
 if (!canSend) {
   console.warn("!!! TWILIO IS NOT CONFIGURED. SMS MESSAGES WILL NOT BE SENT.");

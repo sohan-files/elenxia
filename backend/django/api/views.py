@@ -1,9 +1,9 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
-from .models import Medicine, MedicineSchedule, Notification, MedicineIntake, Caregiver
+from .models import Medicine, MedicineSchedule, Notification, MedicineIntake, Caregiver, User
 from .serializers import (
     UserSerializer,
     MedicineSerializer,
@@ -12,6 +12,8 @@ from .serializers import (
     MedicineIntakeSerializer,
     CaregiverSerializer,
 )
+
+User = get_user_model()
 
 
 class MeViewSet(viewsets.ViewSet):

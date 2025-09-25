@@ -1,71 +1,67 @@
-from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Medicine, MedicineSchedule, Notification, MedicineIntake, Caregiver
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import twilio from "twilio";
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const twilioSid = process.env.TWILIO_ACCOUNT_SID || "";
+const twilioToken = process.env.TWILIO_AUTH_TOKEN || "";
+const twilioFrom = process.env.TWILIO_FROM || "";
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["id", "username", "email", "first_name"]
+if (!twilioSid || !twilioToken || !twilioFrom) {
+  console.error('Twilio credentials missing or invalid. Check .env file.');
+}
 
+let canSend = false;
+let client = null;
 
-class MedicineScheduleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MedicineSchedule
-        fields = ["id", "time_of_day", "days_of_week", "is_active"]
+if (twilioSid && twilioToken && twilioFrom) {
+  try {
+    client = twilio(twilioSid, twilioToken);
+    canSend = true;
+  } catch (error) {
+    console.error('Failed to initialize Twilio client:', error.message);
+    canSend = false;
+    client = null;
+  }
 
+if (!canSend) {
+  console.warn("!!! TWILIO IS NOT CONFIGURED. SMS MESSAGES WILL NOT BE SENT.");
+  console.warn("!!! Create a .env file in backend/node and add your Twilio credentials.");
+}
 
-class MedicineSerializer(serializers.ModelSerializer):
-    schedules = MedicineScheduleSerializer(many=True, read_only=True)
-    type = serializers.CharField(source='med_type')
+app.get("/health", (_, res) => res.json({ ok: true }));
 
-    class Meta:
-        model = Medicine
-        fields = [
-            "id",
-            "name",
-            "dosage",
-            "type",
-            "remaining_count",
-            "refill_threshold",
-            "instructions",
-            "side_effects",
-            "schedules",
-            "created_at",
-        ]
+app.post("/api/sms", async (req, res) => {
+  try {
+    const { to, body } = req.body || {};
+    if (!to || !body) return res.status(400).json({ error: "Missing 'to' or 'body'" });
+    if (!canSend) return res.status(500).json({ error: "Twilio not configured" });
 
+    const msg = await client.messages.create({ to, from: twilioFrom, body });
+    res.json({ id: msg.sid, status: msg.status });
+  } catch (e) {
+    res.status(500).json({ error: e.message || String(e) });
+  }
+});
 
-class NotificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Notification
-        fields = ["id", "title", "message", "type", "status", "scheduled_for", "created_at"]
+const port = process.env.PORT || 8787;
 
+app.listen(port, () => {
+  console.log(`PillPall SMS server listening on :${port}`);
+});
 
-class MedicineIntakeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MedicineIntake
-        fields = [
-            "id",
-            "medicine",
-            "scheduled_time",
-            "actual_time",
-            "status",
-            "notes",
-            "created_at",
-        ]
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+});
 
-
-class CaregiverSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Caregiver
-        fields = [
-            "id",
-            "name",
-            "relationship",
-            "phone_number",
-            "email",
-            "notifications_enabled",
-            "emergency_contact",
-            "created_at",
-        ]
 

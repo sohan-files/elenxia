@@ -7,8 +7,8 @@ class User(AbstractUser):
     sms_enabled = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
 
-    class Meta:
-        app_label = 'api'
+    def __str__(self):
+        return self.username
 
 
 class Medicine(models.Model):
