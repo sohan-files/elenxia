@@ -1,122 +1,138 @@
 # PillPall
 
-PillPall is a full-stack application designed to help users manage their medication schedules and improve adherence. It features a React frontend, a Django backend, and a Node.js service for sending SMS reminders.
+PillPall is a full-stack application designed to help users manage their medication schedules and improve adherence. It features a React frontend and a Node.js backend with SQLite database.
 
 ## Features
 
--   **Medication Management:** Add, edit, and delete medications from your schedule.
--   **Compliance Dashboard:** Track your medication adherence over time.
--   **Automated SMS Reminders:** Receive SMS notifications to remind you to take your medication (requires Twilio configuration).
--   **Caregiver Panel:** (Future feature) Allow caregivers to monitor and manage medication schedules.
+- **Medication Management:** Add, edit, and delete medications from your schedule
+- **Schedule Tracking:** Set up medication schedules with specific times and days
+- **Intake Tracking:** Record when medications are taken, missed, or skipped
+- **Compliance Dashboard:** Track your medication adherence over time
+- **Caregiver Panel:** Add and manage caregiver contacts
+- **Notifications:** Receive reminders for medications
+- **OCR Scanner:** Scan prescription labels to quickly add medications
 
 ## Tech Stack
 
--   **Frontend:** React, Vite, TypeScript, Tailwind CSS, shadcn-ui
--   **Backend:** Django, Django REST Framework
--   **SMS Service:** Node.js, Express, Twilio
--   **Database:** SQLite (default)
+- **Frontend:** React, Vite, TypeScript, Tailwind CSS, shadcn-ui
+- **Backend:** Node.js, Express
+- **Database:** SQLite
+- **Authentication:** JWT
 
 ## Getting Started
 
 ### Prerequisites
 
--   Node.js (v18 or later)
--   Python (v3.10 or later)
--   `pip` and `venv` for Python package management
+- Node.js (v18 or later)
 
-### 1. Frontend Setup
+### Quick Start
 
-The frontend is a React application built with Vite.
+The easiest way to run the application:
 
-```sh
-# Navigate to the frontend directory
-cd frontend
+```bash
+./start.sh
+```
 
-# Install dependencies
+This will start both the backend API server and the frontend development server.
+
+### Manual Setup
+
+#### 1. Install Dependencies
+
+```bash
+# Install backend dependencies
+cd backend/node
 npm install
 
-# Run the development server
+# Install frontend dependencies
+cd ../../frontend
+npm install
+```
+
+#### 2. Start Backend Server
+
+```bash
+cd backend/node
+npm start
+```
+
+The backend API will run on `http://localhost:8000`
+
+#### 3. Start Frontend Server
+
+```bash
+cd frontend
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173`.
+The frontend will be available at `http://localhost:5173`
 
-### 2. Backend Setup
+## Database
 
-The backend is a Django application.
+The application uses SQLite for data persistence. The database file is automatically created at:
 
-```sh
-# Navigate to the Django project directory
-cd backend/django
-
-# Create a virtual environment
-python -m venv venv
-
-# Activate the virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Apply database migrations
-python manage.py migrate
-
-# Run the Django development server
-python manage.py runserver
+```
+backend/node/pillpall.db
 ```
 
-The Django API will be available at `http://localhost:8000`.
+See [DATABASE.md](DATABASE.md) for detailed schema documentation and API endpoints.
 
-### 3. SMS Notification Server (Optional)
+## Environment Variables
 
-The application can send SMS reminders using a Node.js server and the Twilio service. This part is optional. If you do not run this server, the rest of the application will still work, but no SMS messages will be sent.
+Create a `.env` file in the project root:
 
-```sh
-# Navigate to the Node.js server directory
-cd backend/node
-
-# Install dependencies
-npm install
+```env
+VITE_API_URL=http://localhost:8000/api
+JWT_SECRET=your-secret-key-change-in-production
+PORT=8000
 ```
 
-#### Configuration
+## API Documentation
 
-To send SMS messages, you need a Twilio account.
+All API endpoints are documented in [DATABASE.md](DATABASE.md).
 
-1.  Activate a `.venv` file in the `C:\Users\User\OneDrive\PillPall\backend\django` directory.
-2.  Add your Twilio credentials to the `.env` file in the following format:
+Base URL: `http://localhost:8000/api`
 
-    ```
-    TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    TWILIO_AUTH_TOKEN=your_auth_token
-    TWILIO_FROM=+15551234567
-    ```
+### Available Endpoints:
 
-    -   `TWILIO_ACCOUNT_SID`: Your Twilio Account SID.
-    -   `TWILIO_AUTH_TOKEN`: Your Twilio Auth Token.
-    -   `TWILIO_FROM`: Your Twilio phone number.
+- **Authentication:** `/auth/register`, `/auth/login`, `/auth/user`
+- **Medicines:** `/medicines` (GET, POST, PUT, DELETE)
+- **Intakes:** `/intakes` (GET, POST, PUT)
+- **Caregivers:** `/caregivers` (GET, POST, PUT, DELETE)
+- **Notifications:** `/notifications` (GET, POST, PUT)
 
-#### Running the SMS Server
+## Building for Production
 
-```sh
-# Start the server
-npm run start
+```bash
+npm run build
 ```
 
-The SMS server will run on port `8787`. If you do not provide the `.env` file, the server will still run but will print a warning and will not send any messages.
+The built files will be in `frontend/dist/`
 
-## Running the Full Application
+## Project Structure
 
-To run the complete application, you will need to have three terminals open:
+```
+PillPall/
+├── frontend/               # React frontend application
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── hooks/         # Custom React hooks
+│   │   ├── lib/          # Utilities and API client
+│   │   └── pages/        # Page components
+│   └── package.json
+├── backend/
+│   └── node/             # Node.js + Express backend
+│       ├── src/
+│       │   ├── server.js    # Main server file
+│       │   ├── database.js  # SQLite database setup
+│       │   ├── auth.js      # Authentication logic
+│       │   └── api.js       # API routes
+│       └── package.json
+├── DATABASE.md           # Database documentation
+└── start.sh             # Startup script
 
-1.  **Terminal 1 (Frontend):** `cd frontend && npm run dev`
-2.  **Terminal 2 (Backend):** `cd backend/django && python manage.py runserver`
-3.  **Terminal 3 (SMS Server):** `cd backend/node && npm run start`
+```
 
 ## License
 
 MIT
-
